@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **New `MediaUnsupportedError` exception classifies Meta error code 9004** — Previously a 9004 "Only photo or video can be accepted as media type" response (typically: HEIC file masquerading as JPG, or Cloudinary transformation produced output IG can't decode) was classified as a generic `InstagramAPIError`. Now `_check_response_errors` in `instagram_api.py` raises the new `MediaUnsupportedError`, and the autopost handler reacts by creating a **permanent_reject** lock on the underlying media_item so the failing file doesn't keep cycling through retries on every scheduler tick. User sees a clear "couldn't process this file (Meta error 9004) — permanently rejected, won't be scheduled again" message instead of the previous generic error.
+
 ### Removed
 
 - **`instagram_accounts.auth_method` legacy column dropped (#468 PR 5)** — Final sub-PR of the credential refactor. After PR 4 the application reads provenance off `api_tokens.auth_method` exclusively; PRs 2-4 made the account-side column write-only, and this PR removes both the writes (in `instagram_account_service.update_account_token` and `instagram_account_repository.create`) and the column itself (migration 041). `instagram_accounts` is one step closer to pure-identity. The `instagram_accounts.instagram_account_id` legacy column remains — its consumers (backfill, OAuth heal logic, credential lookup) need a separate refactor to read from `api_tokens.meta_account_id` instead, filed as a follow-up.
