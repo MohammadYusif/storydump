@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hourly `posting_queue` auto-prune loop** — New `cleanup_queue_loop` mirrors the existing `cleanup_locks_loop` shape. Runs hourly, calls a new `QueueRepository.delete_stale(hours=24)` to remove any queue item whose `scheduled_for` is more than 24 hours past. Prevents the May 17 → 19 outage style of accumulation that left 954 stale rows in `posting_queue` until manual cleanup on 2026-06-02. Distinct from the existing `delete_stale_pending(max_age_minutes=10)` which targets short-window JIT scheduler hygiene; this catches the long-tail.
+
 ### Removed
 
 - **`instagram_accounts.auth_method` legacy column dropped (#468 PR 5)** — Final sub-PR of the credential refactor. After PR 4 the application reads provenance off `api_tokens.auth_method` exclusively; PRs 2-4 made the account-side column write-only, and this PR removes both the writes (in `instagram_account_service.update_account_token` and `instagram_account_repository.create`) and the column itself (migration 041). `instagram_accounts` is one step closer to pure-identity. The `instagram_accounts.instagram_account_id` legacy column remains — its consumers (backfill, OAuth heal logic, credential lookup) need a separate refactor to read from `api_tokens.meta_account_id` instead, filed as a follow-up.
